@@ -8,53 +8,54 @@ PROJECT_ROOT = pathlib.Path.cwd() / "generated_project"
 
 
 def safe_path_for_project(path: str) -> pathlib.Path:
-    p = (PROJECT_ROOT / path).resolve()
-    if PROJECT_ROOT.resolve() not in p.parents and PROJECT_ROOT.resolve() != p.parent and PROJECT_ROOT.resolve() != p:
-        raise ValueError("Attempt to write outside project root")
-    return p
+    resolved_path = (PROJECT_ROOT / path).resolve()
+    root = PROJECT_ROOT.resolve()
+    if root not in resolved_path.parents and root != resolved_path.parent and root != resolved_path:
+        raise ValueError("Path is outside the project root")
+    return resolved_path
 
 
 @tool
 def write_file(path: str, content: str) -> str:
-    """Writes content to a file at the specified path within the project root."""
-    p = safe_path_for_project(path)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    with open(p, "w", encoding="utf-8") as f:
+    """Save content to a file at the given path inside the project root."""
+    file_path = safe_path_for_project(path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(file_path, "w", encoding="utf-8") as f:
         f.write(content)
-    return f"WROTE:{p}"
+    return f"WROTE:{file_path}"
 
 
 @tool
 def read_file(path: str) -> str:
-    """Reads content from a file at the specified path within the project root."""
-    p = safe_path_for_project(path)
-    if not p.exists():
+    """Read the contents of a file at the given path inside the project root."""
+    file_path = safe_path_for_project(path)
+    if not file_path.exists():
         return ""
-    with open(p, "r", encoding="utf-8") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         return f.read()
 
 
 @tool
 def get_current_directory() -> str:
-    """Returns the current working directory."""
+    """Get the current working directory for the project."""
     return str(PROJECT_ROOT)
 
 
 @tool
 def list_files(directory: str = ".") -> str:
-    """Lists all files in the specified directory within the project root."""
-    p = safe_path_for_project(directory)
-    if not p.is_dir():
-        return f"ERROR: {p} is not a directory"
-    files = [str(f.relative_to(PROJECT_ROOT)) for f in p.glob("**/*") if f.is_file()]
+    """List every file in the given directory under the project root."""
+    dir_path = safe_path_for_project(directory)
+    if not dir_path.is_dir():
+        return f"ERROR: {dir_path} is not a directory"
+    files = [str(f.relative_to(PROJECT_ROOT)) for f in dir_path.glob("**/*") if f.is_file()]
     return "\n".join(files) if files else "No files found."
 
 @tool
 def run_cmd(cmd: str, cwd: str = None, timeout: int = 30) -> Tuple[int, str, str]:
-    """Runs a shell command in the specified directory and returns the result."""
-    cwd_dir = safe_path_for_project(cwd) if cwd else PROJECT_ROOT
-    res = subprocess.run(cmd, shell=True, cwd=str(cwd_dir), capture_output=True, text=True, timeout=timeout)
-    return res.returncode, res.stdout, res.stderr
+    """Execute a shell command in the specified directory and return the result."""
+    working_dir = safe_path_for_project(cwd) if cwd else PROJECT_ROOT
+    result = subprocess.run(cmd, shell=True, cwd=str(working_dir), capture_output=True, text=True, timeout=timeout)
+    return result.returncode, result.stdout, result.stderr
 
 
 def init_project_root():

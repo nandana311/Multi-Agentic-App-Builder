@@ -1,3 +1,5 @@
+
+import os
 from dotenv import load_dotenv
 from langchain_core.globals import set_verbose, set_debug
 from langchain_openai import ChatOpenAI
@@ -5,17 +7,15 @@ from langgraph.constants import END
 from langgraph.graph import StateGraph
 from langgraph.prebuilt import create_react_agent
 
-from agent.prompts import *
-from agent.states import *
+from agent.prompts import planner_prompt, architect_prompt, coder_system_prompt
+from agent.states import Plan, TaskPlan, CoderState
 from agent.tools import write_file, read_file, get_current_directory, list_files
 
-_ = load_dotenv()
-
-set_debug(True)
+load_dotenv()
 set_verbose(True)
+set_debug(True)
 
 llm = ChatOpenAI(model="gpt-4o")
-
 
 def planner_agent(state: dict) -> dict:
     """Converts user prompt into a structured Plan."""
@@ -43,7 +43,7 @@ def architect_agent(state: dict) -> dict:
 
 
 def coder_agent(state: dict) -> dict:
-    """LangGraph tool-using coder agent."""
+    """Executes implementation steps using LangGraph tools."""
     coder_state: CoderState = state.get("coder_state")
     if coder_state is None:
         coder_state = CoderState(task_plan=state["task_plan"], current_step_idx=0)
